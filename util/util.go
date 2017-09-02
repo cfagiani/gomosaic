@@ -26,10 +26,10 @@ func CheckError(err error, msg string, isFatal bool) bool {
 }
 
 // Converts a string to a 32-bit unsigned integer, eating any errors
-func GetInt(s string) uint32 {
+func GetInt32(s string) uint32 {
 	// TODO: actually handle the error?
 	i, err := strconv.ParseUint(s, 10, 32)
-	if err != nil {
+	if err == nil {
 		return uint32(i)
 	}
 	return 0

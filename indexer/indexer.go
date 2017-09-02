@@ -11,6 +11,7 @@ import (
 	"strings"
 	"github.com/cfagiani/gomosaic/util"
 	"github.com/cfagiani/gomosaic/mosaicimages"
+	"github.com/cfagiani/gomosaic"
 )
 
 const (
@@ -34,7 +35,7 @@ func Index(sourceDirs string, destDir string) {
 	sort.Strings(dirs)
 
 	// TODO: use a goroutine for each directory?
-	var newIndex MosaicTiles = make([]MosaicTile, 0, 100)
+	var newIndex gomosaic.MosaicTiles = make([]gomosaic.MosaicTile, 0, 100)
 	for i := 0; i < len(dirs); i++ {
 		newIndex = processDirectory(dirs[i], oldIndex, newIndex)
 	}
@@ -47,7 +48,7 @@ func Index(sourceDirs string, destDir string) {
 
 //Processes a directory in a depth-first manner, looking for and analyzing any images. If the image is already in the
 //index, the data will simply be copied to the new index without re-analyzing the image.
-func processDirectory(dirName string, oldIndex MosaicTiles, newIndex MosaicTiles) MosaicTiles {
+func processDirectory(dirName string, oldIndex gomosaic.MosaicTiles, newIndex gomosaic.MosaicTiles) gomosaic.MosaicTiles {
 	files, err := ioutil.ReadDir(dirName)
 	if err != nil {
 		log.Fatal(err)
@@ -64,7 +65,7 @@ func processDirectory(dirName string, oldIndex MosaicTiles, newIndex MosaicTiles
 				if err == nil {
 					//now add to index
 					newIndex = append(newIndex,
-						MosaicTile{filename, imageSegment.RVal, imageSegment.GVal, imageSegment.BVal})
+						gomosaic.MosaicTile{filename, imageSegment.RVal, imageSegment.GVal, imageSegment.BVal})
 				}
 			} else {
 				newIndex = append(newIndex, *existingTile)
@@ -75,14 +76,14 @@ func processDirectory(dirName string, oldIndex MosaicTiles, newIndex MosaicTiles
 }
 
 //Prints the entire index.
-func printIndex(index []MosaicTile) {
+func printIndex(index []gomosaic.MosaicTile) {
 	for _, node := range index {
 		fmt.Println(node.ToString())
 	}
 }
 
 //Writes the index file to the destDir.
-func writeIndex(destDir string, index MosaicTiles) {
+func writeIndex(destDir string, index gomosaic.MosaicTiles) {
 	f, err := os.OpenFile(util.GetAbsolutePath(destDir, idxname), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
 	util.CheckError(err, "error opening file", true)
 	// close file when block exits
@@ -90,16 +91,16 @@ func writeIndex(destDir string, index MosaicTiles) {
 	w := bufio.NewWriter(f)
 	defer w.Flush()
 	for _, node := range index {
-		if node.filename != "" {
+		if node.Filename != "" {
 			fmt.Fprintf(w, "%s\n", node.ToString())
 		}
 	}
 }
 
 //performs a binary search of the sorted index for an entry with the filename specified
-func find(name string, index MosaicTiles) *MosaicTile {
-	i := sort.Search(len(index), func(i int) bool { return index[i].filename == name })
-	if i < len(index) && index[i].filename == name {
+func find(name string, index gomosaic.MosaicTiles) *gomosaic.MosaicTile {
+	i := sort.Search(len(index), func(i int) bool { return index[i].Filename == name })
+	if i < len(index) && index[i].Filename == name {
 		return &index[i]
 	} else {
 		return nil
@@ -108,8 +109,8 @@ func find(name string, index MosaicTiles) *MosaicTile {
 
 //Reads an existing index and returns it as a MosaicTiles type. If the index does not exist, the MosaicTiles slice will
 //be empty.
-func ReadIndex(sourceDir string) MosaicTiles {
-	var index = make([]MosaicTile, 0, 100)
+func ReadIndex(sourceDir string) gomosaic.MosaicTiles {
+	var index = make([]gomosaic.MosaicTile, 0, 100)
 	filename := sourceDir + string(os.PathSeparator) + idxname
 	if _, err := os.Stat(filename); !os.IsNotExist(err) {
 		f, err := os.Open(filename)
@@ -133,35 +134,9 @@ func ReadIndex(sourceDir string) MosaicTiles {
 }
 
 //Parses a line from the index and uses it to initialize a new MosaicTile
-func createNodeFromLine(line string) MosaicTile {
+func createNodeFromLine(line string) gomosaic.MosaicTile {
 	// construct node
 	parts := strings.Split(line, delimiter)
-	return MosaicTile{parts[0], util.GetInt(parts[1]), util.GetInt(parts[2]), util.GetInt(parts[3])}
-}
+	return gomosaic.MosaicTile{parts[0], util.GetInt32(parts[1]), util.GetInt32(parts[2]), util.GetInt32(parts[3])}
 
-//Type representing a tile that can be used in a mosaic
-type MosaicTile struct {
-	filename string
-	avgR     uint32
-	avgG     uint32
-	avgB     uint32
-}
-
-func (t MosaicTile) ToString() string {
-	return fmt.Sprintf("%s;%d;%d;%d", t.filename, t.avgR, t.avgG, t.avgB)
-}
-
-//define a type so we can implement Sort interface
-type MosaicTiles []MosaicTile
-
-func (slice MosaicTiles) Len() int {
-	return len(slice)
-}
-
-func (slice MosaicTiles) Less(i, j int) bool {
-	return slice[i].filename < slice[j].filename
-}
-
-func (slice MosaicTiles) Swap(i, j int) {
-	slice[i], slice[j] = slice[j], slice[i]
 }

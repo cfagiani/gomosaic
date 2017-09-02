@@ -18,5 +18,5 @@ func main() {
 
 func usage() {
 	fmt.Println("Too few command line arguments.\n\nUsage:\n")
-	fmt.Println("go run mosaicindexer <imageDir>[,<imageDir>] <outputDir>\n")
+	fmt.Println("go run cmd/indexer/main.go <imageDir>[,<imageDir>] <outputDir>\n")
 }

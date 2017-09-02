@@ -8,8 +8,10 @@ import (
 	_ "image/gif"
 	_ "image/png"
 	"image"
+	"image/draw"
 	"errors"
 	"github.com/cfagiani/gomosaic/util"
+	"github.com/cfagiani/gomosaic"
 )
 
 var magicNumbers = map[string]string{
@@ -38,8 +40,7 @@ func IsSupportedImage(dirName string, file os.FileInfo) bool {
 }
 
 // use height or width of 0 to preserve aspect ratio
-func Resize(inputFile string, outputFile string, height uint, width uint) {
-	// open "test.jpg"
+func resizeImage(inputFile string, height uint, width uint) image.Image {
 	file, err := os.Open(inputFile)
 	defer file.Close()
 	util.CheckError(err, "Could not read input file", true)
@@ -47,21 +48,58 @@ func Resize(inputFile string, outputFile string, height uint, width uint) {
 	// decode jpeg into image.Image
 	img, _, err := image.Decode(file)
 	util.CheckError(err, "Could not decode image", true)
-	file.Close()
+	return resize.Resize(width, height, img, resize.Lanczos3)
+}
 
-	m := resize.Resize(width, height, img, resize.Lanczos3)
+//resizes an input image and writes a new file with the result
+func GenerateTileFile(inputFile string, outputFile string, height uint, width uint) {
+	m := resizeImage(inputFile, height, width)
+	WriteImageToFile(m, outputFile)
+}
 
+//Creates a new Image using the dimensions passed in
+func CreateDrawableImage(tileSize int, gridSize int, sourceWidth int, sourceHeight int) draw.Image {
+	return image.NewRGBA(image.Rect(0, 0, (sourceWidth/gridSize)*tileSize, (sourceHeight/gridSize)*tileSize))
+}
+
+func WriteTileToImage(img draw.Image, tile gomosaic.MosaicTile, tileSize uint, x int, y int) {
+	tileImage := resizeImage(tile.Filename, tileSize, tileSize)
+	draw.FloydSteinberg.Draw(img, tileImage.Bounds(), tileImage, image.Point{x, y})
+}
+
+func WriteImageToFile(img image.Image, outputFile string) {
 	out, err := os.Create(outputFile)
 	util.CheckError(err, "Could not open output file", true)
 	defer out.Close()
-
 	// write new image to file
-	jpeg.Encode(out, m, nil)
+	jpeg.Encode(out, img, nil)
+}
+
+//Divides a source image up into square segments of the specified size and returns an array of ImageSegments. If the
+//image cannot be processed, an error is returned.
+func SegmentImage(sourceImage string, segmentSize int) ([]gomosaic.ImageSegment, int, int, error) {
+	file, err := os.Open(sourceImage)
+	if !util.CheckError(err, "Could not process image", false) {
+		defer file.Close()
+		img, _, err := image.Decode(file)
+		util.CheckError(err, "Could not process image", true)
+		bounds := img.Bounds()
+		//TODO: need to handle non-square images better
+		var segments []gomosaic.ImageSegment = make([]gomosaic.ImageSegment, 0, 100)
+		for y := bounds.Min.Y; y < bounds.Max.Y; y += segmentSize {
+			for x := bounds.Min.X; x < bounds.Max.X; x += segmentSize {
+				segments = append(segments, analyzeImageSegment(img, x, y, x+segmentSize, y+segmentSize))
+			}
+		}
+		return segments, bounds.Max.X - bounds.Min.X, bounds.Max.Y - bounds.Min.Y, nil
+	} else {
+		return make([]gomosaic.ImageSegment, 0, 0), 0, 0, errors.New("Could not analyze image")
+	}
 }
 
 //Analyzes an entire image and returns an ImageSegment with the result. If the image cannot be decoded, an error is
 //returned.
-func AnalyzeImage(filename string) (ImageSegment, error) {
+func AnalyzeImage(filename string) (gomosaic.ImageSegment, error) {
 	file, err := os.Open(filename)
 
 	if !util.CheckError(err, "Could not process image", false) {
@@ -72,12 +110,12 @@ func AnalyzeImage(filename string) (ImageSegment, error) {
 		bounds := img.Bounds()
 		return analyzeImageSegment(img, bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y), nil
 	} else {
-		return ImageSegment{0, 0, 0, 0, 0, 0, 0}, errors.New("Could not analyze image")
+		return gomosaic.ImageSegment{0, 0, 0, 0, 0, 0, 0}, errors.New("Could not analyze image")
 	}
 }
 
 //Analyzes a segment of an image, returning an ImageSegment struct with the result.
-func analyzeImageSegment(img image.Image, xMin int, yMin int, xMax int, yMax int) ImageSegment {
+func analyzeImageSegment(img image.Image, xMin int, yMin int, xMax int, yMax int) gomosaic.ImageSegment {
 	var rTotal, gTotal, bTotal, pixelCount uint32 = 0, 0, 0, 0
 
 	for y := yMin; y < yMax; y++ {
@@ -90,17 +128,6 @@ func analyzeImageSegment(img image.Image, xMin int, yMin int, xMax int, yMax int
 			pixelCount++
 		}
 	}
-	return ImageSegment{xMin, yMin, xMax, yMax,
+	return gomosaic.ImageSegment{xMin, yMin, xMax, yMax,
 		rTotal / pixelCount, gTotal / pixelCount, bTotal / pixelCount}
-}
-
-//type representing the average color values of a segment of an image defined by the min/max X/Y coordinates
-type ImageSegment struct {
-	XMin int
-	YMin int
-	XMax int
-	YMax int
-	RVal uint32
-	GVal uint32
-	BVal uint32
 }
