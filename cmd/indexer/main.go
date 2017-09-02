@@ -6,6 +6,8 @@ import (
 	"github.com/cfagiani/gomosaic/indexer"
 )
 
+//This command will run the mosaic indexer on all the directories passed in via the command line. The index will be
+//written to the output directory as specified on the command line.
 func main() {
 	if len(os.Args) < 3 {
 		usage()

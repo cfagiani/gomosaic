@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 	"fmt"
-
 )
 
+//This command wil run the mosaic maker. It assumes that we have already computed an index to use for tiles.
 func main() {
 	if len(os.Args) < 4 {
 		usage()

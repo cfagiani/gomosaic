@@ -10,13 +10,19 @@ import (
 	"sort"
 	"strings"
 	"github.com/cfagiani/gomosaic/util"
+	"github.com/cfagiani/gomosaic/mosaicimages"
 )
 
 const (
+	//delimiter used in index file
 	delimiter string = ";"
-	idxname   string = "mosaicIndex.dat"
+	//name of index file
+	idxname string = "mosaicIndex.dat"
 )
 
+//Indexes all the readable images in the source dir (will recursively search all subdirs of the directories passed in
+//for images). For each image found, the average color values will be calculated and the results will be written to a
+//file in the destDir directory.
 func Index(sourceDirs string, destDir string) {
 	//first read dat file if present
 	log.Println("Reading file")
@@ -39,6 +45,8 @@ func Index(sourceDirs string, destDir string) {
 	writeIndex(destDir, newIndex)
 }
 
+//Processes a directory in a depth-first manner, looking for and analyzing any images. If the image is already in the
+//index, the data will simply be copied to the new index without re-analyzing the image.
 func processDirectory(dirName string, oldIndex MosaicTiles, newIndex MosaicTiles) MosaicTiles {
 	files, err := ioutil.ReadDir(dirName)
 	if err != nil {
@@ -49,14 +57,14 @@ func processDirectory(dirName string, oldIndex MosaicTiles, newIndex MosaicTiles
 		filename := fmt.Sprintf("%s/%s", dirName, file.Name())
 		if file.IsDir() {
 			newIndex = processDirectory(filename, oldIndex, newIndex)
-		} else if util.IsSupportedImage(dirName, file) {
+		} else if mosaicimages.IsSupportedImage(dirName, file) {
 			existingTile := find(filename, oldIndex)
 			if existingTile == nil {
-				rval, gval, bval, err := util.AnalyzeImage(filename)
+				imageSegment, err := mosaicimages.AnalyzeImage(filename)
 				if err == nil {
 					//now add to index
 					newIndex = append(newIndex,
-						MosaicTile{filename, rval, gval, bval})
+						MosaicTile{filename, imageSegment.RVal, imageSegment.GVal, imageSegment.BVal})
 				}
 			} else {
 				newIndex = append(newIndex, *existingTile)
@@ -66,12 +74,14 @@ func processDirectory(dirName string, oldIndex MosaicTiles, newIndex MosaicTiles
 	return newIndex
 }
 
+//Prints the entire index.
 func printIndex(index []MosaicTile) {
 	for _, node := range index {
 		fmt.Println(node.ToString())
 	}
 }
 
+//Writes the index file to the destDir.
 func writeIndex(destDir string, index MosaicTiles) {
 	f, err := os.OpenFile(util.GetAbsolutePath(destDir, idxname), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
 	util.CheckError(err, "error opening file", true)
@@ -96,6 +106,8 @@ func find(name string, index MosaicTiles) *MosaicTile {
 	}
 }
 
+//Reads an existing index and returns it as a MosaicTiles type. If the index does not exist, the MosaicTiles slice will
+//be empty.
 func ReadIndex(sourceDir string) MosaicTiles {
 	var index = make([]MosaicTile, 0, 100)
 	filename := sourceDir + string(os.PathSeparator) + idxname
@@ -120,12 +132,14 @@ func ReadIndex(sourceDir string) MosaicTiles {
 	return index
 }
 
+//Parses a line from the index and uses it to initialize a new MosaicTile
 func createNodeFromLine(line string) MosaicTile {
 	// construct node
 	parts := strings.Split(line, delimiter)
 	return MosaicTile{parts[0], util.GetInt(parts[1]), util.GetInt(parts[2]), util.GetInt(parts[3])}
 }
 
+//Type representing a tile that can be used in a mosaic
 type MosaicTile struct {
 	filename string
 	avgR     uint32

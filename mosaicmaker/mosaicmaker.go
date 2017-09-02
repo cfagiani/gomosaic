@@ -6,9 +6,12 @@ import (
 )
 
 const (
+	//minimum number of entries in the index required to even attempt a mosaic
 	minIndexSize int = 100
 )
 
+//Makes a new photomosaic of the sourceImage using the files referenced in the indexDir as a source. This method
+//will divide up the source image into a grid and find the best match tile from the index to use in the output image.
 func MakeMosaic(sourceImage string, indexDir string, gridSize uint32, tileSize uint32, outputFile string) {
 
 	//read the index
@@ -16,6 +19,5 @@ func MakeMosaic(sourceImage string, indexDir string, gridSize uint32, tileSize u
 	if len(index) < minIndexSize {
 		log.Fatal("Index contains too few entries to generate a mosaic. Index  more tile images.")
 	}
-
 
 }
