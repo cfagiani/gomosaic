@@ -1,7 +1,4 @@
-need to install via go:
-
-go get github.com/nfnt/resize
-
+Simple program to build photo mosaics that is mainly an exercise to learn Go.
 
 
 Thoughts:
