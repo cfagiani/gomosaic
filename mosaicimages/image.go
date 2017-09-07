@@ -24,7 +24,7 @@ var magicNumbers = map[string]string{
 //checks if a file is a supported image by looking at the first few bytes to see if its in our magicNumber table
 //while we could use the Decode method from images, we don't need/want to read the whole file right now
 func IsSupportedImage(dirName string, file os.FileInfo) bool {
-	f, err := os.Open(util.GetAbsolutePath(dirName, file.Name()))
+	f, err := os.Open(util.GetPath(dirName, file.Name()))
 	defer f.Close()
 	if !util.CheckError(err, "error opening file", false) {
 		var header = make([]byte, 36)
@@ -62,9 +62,11 @@ func CreateDrawableImage(tileSize int, gridSize int, sourceWidth int, sourceHeig
 	return image.NewRGBA(image.Rect(0, 0, (sourceWidth/gridSize)*tileSize, (sourceHeight/gridSize)*tileSize))
 }
 
-func WriteTileToImage(img draw.Image, tile gomosaic.MosaicTile, tileSize uint, x int, y int) {
+func WriteTileToImage(img draw.Image, tile gomosaic.MosaicTile, tileSize uint, startX int, startY int) {
 	tileImage := resizeImage(tile.Filename, tileSize, tileSize)
-	draw.FloydSteinberg.Draw(img, tileImage.Bounds(), tileImage, image.Point{x, y})
+	destRec := image.Rect(startX, startY, startX+int(tileSize), startY+int(tileSize))
+	draw.FloydSteinberg.Draw(img, destRec.Bounds(), tileImage,
+		image.Point{tileImage.Bounds().Min.X, tileImage.Bounds().Min.Y})
 }
 
 func WriteImageToFile(img image.Image, outputFile string) {

@@ -22,12 +22,12 @@ const (
 )
 
 //Indexes all the readable images in the source dir (will recursively search all subdirs of the directories passed in
-//for images). For each image found, the average color values will be calculated and the results will be written to a
-//file in the destDir directory.
-func Index(sourceDirs string, destDir string) {
+//for images). For each image found, the average color values will be calculated and the results will be written to
+//the dest file
+func Index(sourceDirs string, dest string) {
 	//first read dat file if present
 	log.Println("Reading file")
-	oldIndex := ReadIndex(destDir)
+	oldIndex := ReadIndex(dest)
 	log.Printf("Old index has %d entries\n", len(oldIndex))
 
 	//now recurse through the directories
@@ -43,7 +43,50 @@ func Index(sourceDirs string, destDir string) {
 	sort.Sort(newIndex)
 
 	log.Printf("Writing new index with %d entries\n", len(newIndex))
-	writeIndex(destDir, newIndex)
+	writeIndex(dest, newIndex)
+}
+
+//Reads an existing index and returns it as a MosaicTiles type. If the index does not exist, the MosaicTiles slice will
+//be empty.
+func ReadIndex(source string) gomosaic.MosaicTiles {
+	var index = make([]gomosaic.MosaicTile, 0, 100)
+	filename, exists := GetIndexFileName(source)
+	if exists {
+		f, err := os.Open(filename)
+		util.CheckError(err, "Error opening file", true)
+		//close file when block exits
+		defer f.Close()
+		r := bufio.NewReader(f)
+
+		for {
+			line, err := r.ReadString(10) // 0x0A separator = newline
+			if err == nil {
+				index = append(index, createNodeFromLine(line))
+			}
+			if err == io.EOF {
+				break
+			}
+		}
+	}
+	return index
+}
+
+//returns the filename that should be used for the index along with a flag indicating if the file exists
+func GetIndexFileName(source string) (string, bool) {
+	filename := source
+	if fileInfo, err := os.Stat(source); !os.IsNotExist(err) {
+		exists := true
+		if fileInfo.IsDir() {
+			//if the source existed and was a directory, add the default index name
+			filename = source + string(os.PathSeparator) + idxname
+			//now see if that exists
+			_, err := os.Stat(filename)
+			exists = !os.IsNotExist(err)
+		}
+		return filename, exists
+	} else {
+		return filename, false
+	}
 }
 
 //Processes a directory in a depth-first manner, looking for and analyzing any images. If the image is already in the
@@ -53,9 +96,10 @@ func processDirectory(dirName string, oldIndex gomosaic.MosaicTiles, newIndex go
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	count := 0
+	log.Printf("Indexing %s\n", dirName)
 	for _, file := range files {
-		filename := fmt.Sprintf("%s/%s", dirName, file.Name())
+		filename := util.GetPath(dirName, file.Name())
 		if file.IsDir() {
 			newIndex = processDirectory(filename, oldIndex, newIndex)
 		} else if mosaicimages.IsSupportedImage(dirName, file) {
@@ -66,12 +110,14 @@ func processDirectory(dirName string, oldIndex gomosaic.MosaicTiles, newIndex go
 					//now add to index
 					newIndex = append(newIndex,
 						gomosaic.MosaicTile{filename, imageSegment.RVal, imageSegment.GVal, imageSegment.BVal})
+					count++
 				}
 			} else {
 				newIndex = append(newIndex, *existingTile)
 			}
 		}
 	}
+	log.Printf("Added %d new files to index\n", count)
 	return newIndex
 }
 
@@ -83,8 +129,9 @@ func printIndex(index []gomosaic.MosaicTile) {
 }
 
 //Writes the index file to the destDir.
-func writeIndex(destDir string, index gomosaic.MosaicTiles) {
-	f, err := os.OpenFile(util.GetAbsolutePath(destDir, idxname), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+func writeIndex(dest string, index gomosaic.MosaicTiles) {
+	filename, _ := GetIndexFileName(dest)
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
 	util.CheckError(err, "error opening file", true)
 	// close file when block exits
 	defer f.Close()
@@ -105,32 +152,6 @@ func find(name string, index gomosaic.MosaicTiles) *gomosaic.MosaicTile {
 	} else {
 		return nil
 	}
-}
-
-//Reads an existing index and returns it as a MosaicTiles type. If the index does not exist, the MosaicTiles slice will
-//be empty.
-func ReadIndex(sourceDir string) gomosaic.MosaicTiles {
-	var index = make([]gomosaic.MosaicTile, 0, 100)
-	filename := sourceDir + string(os.PathSeparator) + idxname
-	if _, err := os.Stat(filename); !os.IsNotExist(err) {
-		f, err := os.Open(filename)
-		util.CheckError(err, "Error opening file", true)
-		//close file when block exits
-		defer f.Close()
-		r := bufio.NewReader(f)
-
-		for {
-			line, err := r.ReadString(10) // 0x0A separator = newline
-			if err == nil {
-				//insertNodeFromLine(line, indexRoot)
-				index = append(index, createNodeFromLine(line))
-			}
-			if err == io.EOF {
-				break
-			}
-		}
-	}
-	return index
 }
 
 //Parses a line from the index and uses it to initialize a new MosaicTile

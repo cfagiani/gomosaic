@@ -6,8 +6,8 @@ import (
 	"strconv"
 )
 
-//utility to get the absolute path of a file by concatenating the directory, the pathSeparator, and the file name.
-func GetAbsolutePath(dir string, file string) string {
+//utility to get the path of a file by concatenating the directory, the pathSeparator, and the file name.
+func GetPath(dir string, file string) string {
 	return dir + string(os.PathSeparator) + file
 }
 
