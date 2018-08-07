@@ -2,8 +2,19 @@ package gomosaic
 
 import (
 	"fmt"
-)
+	)
 
+type Config struct {
+	GoogleClientId     string
+	GoogleClientSecret string
+	Sources []ImageSource
+}
+
+type ImageSource struct{
+	Kind string
+	Path string
+	Options string
+}
 
 //Type representing a tile that can be used in a mosaic
 type MosaicTile struct {
@@ -16,7 +27,6 @@ type MosaicTile struct {
 func (t MosaicTile) ToString() string {
 	return fmt.Sprintf("%s;%d;%d;%d", t.Filename, t.AvgR, t.AvgG, t.AvgB)
 }
-
 
 //define a type so we can implement Sort interface
 type MosaicTiles []MosaicTile

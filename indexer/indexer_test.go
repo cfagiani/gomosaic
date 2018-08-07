@@ -1,8 +1,8 @@
 package indexer
 
 import (
-	"testing"
 	"github.com/cfagiani/gomosaic/util"
+	"testing"
 )
 
 func TestGetIndexFileName(t *testing.T) {

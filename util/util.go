@@ -1,8 +1,8 @@
 package util
 
 import (
-	"os"
 	"log"
+	"os"
 	"strconv"
 )
 

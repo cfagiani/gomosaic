@@ -1,10 +1,10 @@
 package mosaicmaker
 
 import (
-	"log"
+	"github.com/cfagiani/gomosaic"
 	"github.com/cfagiani/gomosaic/indexer"
 	"github.com/cfagiani/gomosaic/mosaicimages"
-	"github.com/cfagiani/gomosaic"
+	"log"
 	"math"
 )
 

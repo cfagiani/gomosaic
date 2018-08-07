@@ -3,41 +3,48 @@ package indexer
 import (
 	"bufio"
 	"fmt"
+	"github.com/cfagiani/gomosaic"
+	"github.com/cfagiani/gomosaic/indexer/processor"
+	"github.com/cfagiani/gomosaic/util"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"sort"
 	"strings"
-	"github.com/cfagiani/gomosaic/util"
-	"github.com/cfagiani/gomosaic/mosaicimages"
-	"github.com/cfagiani/gomosaic"
+	"io/ioutil"
+	"encoding/json"
 )
 
 const (
 	//delimiter used in index file
-	delimiter string = ";"
+	delimiter = ";"
 	//name of index file
-	idxname string = "mosaicIndex.dat"
+	idxname = "mosaicIndex.dat"
 )
 
-//Indexes all the readable images in the source dir (will recursively search all subdirs of the directories passed in
+//Indexes all the readable images in the source dir (will recursively search all sources defined in the config file
 //for images). For each image found, the average color values will be calculated and the results will be written to
 //the dest file
-func Index(sourceDirs string, dest string) {
+func Index(configFile string, dest string) {
+
+	file, e := ioutil.ReadFile(configFile)
+	if e != nil {
+		fmt.Printf("Could not read configuration file: %v\n", e)
+		os.Exit(1)
+	}
+	var config gomosaic.Config
+	json.Unmarshal(file, &config)
+
 	//first read dat file if present
 	log.Println("Reading file")
 	oldIndex := ReadIndex(dest)
 	log.Printf("Old index has %d entries\n", len(oldIndex))
 
-	//now recurse through the directories
-	dirs := strings.Split(sourceDirs, ",")
-	sort.Strings(dirs)
-
 	// TODO: use a goroutine for each directory?
 	var newIndex gomosaic.MosaicTiles = make([]gomosaic.MosaicTile, 0, 100)
-	for i := 0; i < len(dirs); i++ {
-		newIndex = processDirectory(dirs[i], oldIndex, newIndex)
+	for i := 0; i < len(config.Sources); i++ {
+		sourceProcessor := getProcessor(config.Sources[i], config)
+		newIndex = sourceProcessor.Process(oldIndex, newIndex)
 	}
 	oldIndex = nil // we don't need the old index anymore
 	sort.Sort(newIndex)
@@ -89,38 +96,6 @@ func GetIndexFileName(source string) (string, bool) {
 	}
 }
 
-//Processes a directory in a depth-first manner, looking for and analyzing any images. If the image is already in the
-//index, the data will simply be copied to the new index without re-analyzing the image.
-func processDirectory(dirName string, oldIndex gomosaic.MosaicTiles, newIndex gomosaic.MosaicTiles) gomosaic.MosaicTiles {
-	files, err := ioutil.ReadDir(dirName)
-	if err != nil {
-		log.Fatal(err)
-	}
-	count := 0
-	log.Printf("Indexing %s\n", dirName)
-	for _, file := range files {
-		filename := util.GetPath(dirName, file.Name())
-		if file.IsDir() {
-			newIndex = processDirectory(filename, oldIndex, newIndex)
-		} else if mosaicimages.IsSupportedImage(dirName, file) {
-			existingTile := find(filename, oldIndex)
-			if existingTile == nil {
-				imageSegment, err := mosaicimages.AnalyzeImage(filename)
-				if err == nil {
-					//now add to index
-					newIndex = append(newIndex,
-						gomosaic.MosaicTile{filename, imageSegment.RVal, imageSegment.GVal, imageSegment.BVal})
-					count++
-				}
-			} else {
-				newIndex = append(newIndex, *existingTile)
-			}
-		}
-	}
-	log.Printf("Added %d new files to index\n", count)
-	return newIndex
-}
-
 //Prints the entire index.
 func printIndex(index []gomosaic.MosaicTile) {
 	for _, node := range index {
@@ -144,13 +119,11 @@ func writeIndex(dest string, index gomosaic.MosaicTiles) {
 	}
 }
 
-//performs a binary search of the sorted index for an entry with the filename specified
-func find(name string, index gomosaic.MosaicTiles) *gomosaic.MosaicTile {
-	i := sort.Search(len(index), func(i int) bool { return index[i].Filename == name })
-	if i < len(index) && index[i].Filename == name {
-		return &index[i]
+func getProcessor(source gomosaic.ImageSource, config gomosaic.Config) processor.IndexProcessor {
+	if source.Kind == "local" {
+		return processor.LocalProcessor{Source: source}
 	} else {
-		return nil
+		return processor.GooglePhotosProcess{Source: source, Config: config}
 	}
 }
 
@@ -158,6 +131,6 @@ func find(name string, index gomosaic.MosaicTiles) *gomosaic.MosaicTile {
 func createNodeFromLine(line string) gomosaic.MosaicTile {
 	// construct node
 	parts := strings.Split(line, delimiter)
-	return gomosaic.MosaicTile{parts[0], util.GetInt32(parts[1]), util.GetInt32(parts[2]), util.GetInt32(parts[3])}
+	return gomosaic.MosaicTile{Filename: parts[0], AvgR: util.GetInt32(parts[1]), AvgG: util.GetInt32(parts[2]), AvgB: util.GetInt32(parts[3])}
 
 }

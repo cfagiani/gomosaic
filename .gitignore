@@ -1,4 +1,9 @@
+#config file
+config.json
+
+#IDE Stuff
 .idea
+*.iml
 
 # Binaries for programs and plugins
 *.exe

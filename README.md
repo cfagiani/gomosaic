@@ -11,6 +11,13 @@ If the index file already exists, entries will be preserved (they will not be re
 ## mosaicmaker
 This module uses the index file created by the indexer and a source image to generate a photo mosaic with a configurable grid/tile size. It will divide the source image into a grid of square segments of a (configurable) uniform size. For each grid segment, it will select the best matching tile (baring duplicates) and use that in the mosaic. The selected mosaic tiles will be resized to a (configurable) square size (regardless of source aspect ratio) as they are written to the destination image. 
 
+# Dependencies
+Google photos api: go get google.golang.org/api/photoslibrary/v1
+Google OAUTH2: go get golang.org/x/oauth2
+Google Cloud Go: go get -u cloud.google.com/go/...
+oauth2-noserver (to get token): go get github.com/nmrshll/oauth2-noserver
+
+
 # Usage
 This application can be used via the CLI (using the cmd packages) or as a library by directly importing gomosaic/indexer and gomosaic/mosaicmaker
 

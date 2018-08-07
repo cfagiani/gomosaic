@@ -1,17 +1,17 @@
 package mosaicimages
 
 import (
-	"os"
-	"strings"
+	"errors"
+	"github.com/cfagiani/gomosaic"
+	"github.com/cfagiani/gomosaic/util"
 	"github.com/nfnt/resize"
-	"image/jpeg"
-	_ "image/gif"
-	_ "image/png"
 	"image"
 	"image/draw"
-	"errors"
-	"github.com/cfagiani/gomosaic/util"
-	"github.com/cfagiani/gomosaic"
+	_ "image/gif"
+	"image/jpeg"
+	_ "image/png"
+	"os"
+	"strings"
 )
 
 var magicNumbers = map[string]string{

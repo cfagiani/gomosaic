@@ -1,10 +1,10 @@
 package main
 
 import (
-	"os"
 	"fmt"
-	"strconv"
 	"github.com/cfagiani/gomosaic/mosaicmaker"
+	"os"
+	"strconv"
 )
 
 //This command wil run the mosaic maker. It assumes that we have already computed an index to use for tiles.

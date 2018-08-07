@@ -1,0 +1,16 @@
+{
+  "googleClientId": "<yourClientId>",
+  "googleClientSecret": "<yourClientSecret>",
+  "sources": [
+    {
+      "kind": "local",
+      "path": "./test",
+      "options": "recurse"
+    },
+    {
+      "kind": "google",
+      "path": "albumnName",
+      "options": "token.json"
+    }
+  ]
+}

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"os"
 	"fmt"
 	"github.com/cfagiani/gomosaic/indexer"
+	"os"
 )
 
 //This command will run the mosaic indexer on all the directories passed in via the command line. The index will be
@@ -18,5 +18,5 @@ func main() {
 
 func usage() {
 	fmt.Println("Too few command line arguments.\n\nUsage:\n")
-	fmt.Println("go run cmd/indexer/main.go <imageDir>[,<imageDir>] <indexFile>\n")
+	fmt.Println("go run cmd/indexer/main.go <configFile> <indexFile>\n")
 }
