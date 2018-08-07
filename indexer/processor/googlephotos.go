@@ -32,7 +32,6 @@ func (p GooglePhotosProcess) Process(oldIndex gomosaic.MosaicTiles, newIndex gom
 
 	client := conf.Client(context.Background(), readToken(p.Source.Options))
 
-	//TODO replace this with the code to actually do the index
 	photoService, err := photoslibrary.New(client)
 	count := 0
 
