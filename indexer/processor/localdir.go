@@ -33,7 +33,7 @@ func (p LocalProcessor) Process(oldIndex gomosaic.MosaicTiles, newIndex gomosaic
 				if err == nil {
 					//now add to index
 					newIndex = append(newIndex,
-						gomosaic.MosaicTile{Filename: filename, AvgR: imageSegment.RVal, AvgG: imageSegment.GVal, AvgB: imageSegment.BVal})
+						gomosaic.MosaicTile{Loc: "L", Filename: filename, AvgR: imageSegment.RVal, AvgG: imageSegment.GVal, AvgB: imageSegment.BVal})
 					count++
 				}
 			} else {

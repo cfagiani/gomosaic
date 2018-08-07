@@ -1,21 +1,22 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/cfagiani/gomosaic"
 	"github.com/nmrshll/oauth2-noserver"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/photoslibrary/v1"
-	"os"
-	"encoding/json"
-	"github.com/cfagiani/gomosaic"
 	"io/ioutil"
+	"os"
 )
 
 func usage() {
 	fmt.Println("Too few command line arguments.\n\nUsage:\n")
 	fmt.Println("go run cmd/authtoken/main.go <configFile> <tokenFile>\n")
 }
+
 // Utility program to validate that we can get an authentication token using the user-supplied clientId and secret.
 // It will update the config file with the token so it can be used by the indexer later.
 func main() {

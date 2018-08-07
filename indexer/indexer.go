@@ -2,17 +2,17 @@ package indexer
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"github.com/cfagiani/gomosaic"
 	"github.com/cfagiani/gomosaic/indexer/processor"
 	"github.com/cfagiani/gomosaic/util"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"sort"
 	"strings"
-	"io/ioutil"
-	"encoding/json"
 )
 
 const (
@@ -131,6 +131,7 @@ func getProcessor(source gomosaic.ImageSource, config gomosaic.Config) processor
 func createNodeFromLine(line string) gomosaic.MosaicTile {
 	// construct node
 	parts := strings.Split(line, delimiter)
-	return gomosaic.MosaicTile{Filename: parts[0], AvgR: util.GetInt32(parts[1]), AvgG: util.GetInt32(parts[2]), AvgB: util.GetInt32(parts[3])}
+	return gomosaic.MosaicTile{Loc: parts[0], Filename: parts[1], AvgR: util.GetInt32(parts[2]),
+		AvgG: util.GetInt32(parts[3]), AvgB: util.GetInt32(parts[4])}
 
 }

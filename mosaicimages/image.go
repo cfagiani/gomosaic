@@ -5,6 +5,7 @@ import (
 	"github.com/cfagiani/gomosaic"
 	"github.com/cfagiani/gomosaic/util"
 	"github.com/nfnt/resize"
+	"github.com/utahta/go-openuri"
 	"image"
 	"image/draw"
 	_ "image/gif"
@@ -102,10 +103,9 @@ func SegmentImage(sourceImage string, segmentSize int) ([]gomosaic.ImageSegment,
 //Analyzes an entire image and returns an ImageSegment with the result. If the image cannot be decoded, an error is
 //returned.
 func AnalyzeImage(filename string) (gomosaic.ImageSegment, error) {
-	file, err := os.Open(filename)
+	file, err := openuri.Open(filename)
 
 	if !util.CheckError(err, "Could not process image", false) {
-
 		defer file.Close()
 		img, _, err := image.Decode(file)
 		util.CheckError(err, "Could not process image", true)
