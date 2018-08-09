@@ -2,10 +2,12 @@ package mosaicimages
 
 import (
 	"errors"
+	"fmt"
 	"github.com/cfagiani/gomosaic"
 	"github.com/cfagiani/gomosaic/util"
 	"github.com/nfnt/resize"
 	"github.com/utahta/go-openuri"
+	"google.golang.org/api/photoslibrary/v1"
 	"image"
 	"image/draw"
 	_ "image/gif"
@@ -63,8 +65,21 @@ func CreateDrawableImage(tileSize int, gridSize int, sourceWidth int, sourceHeig
 	return image.NewRGBA(image.Rect(0, 0, (sourceWidth/gridSize)*tileSize, (sourceHeight/gridSize)*tileSize))
 }
 
-func WriteTileToImage(img draw.Image, tile gomosaic.MosaicTile, tileSize uint, startX int, startY int) {
-	tileImage := resizeImage(tile.Filename, tileSize, tileSize)
+func WriteTileToImage(img draw.Image, tile gomosaic.MosaicTile, tileSize uint, startX int, startY int, photoService *photoslibrary.Service) {
+	var tileImage image.Image
+	if tile.Loc == "L" {
+		tileImage = resizeImage(tile.Filename, tileSize, tileSize)
+	} else {
+		item, err := photoService.MediaItems.Get(tile.Filename).Do()
+		if err != nil {
+			fmt.Printf("Could not get mediaItem from service: %v\n", err)
+			os.Exit(1)
+		}
+
+		file, _ := openuri.Open(item.BaseUrl + fmt.Sprintf("=w%d-h%d", tileSize, tileSize))
+		tileImage, _, err = image.Decode(file)
+		util.CheckError(err, "Could not process image", true)
+	}
 	destRec := image.Rect(startX, startY, startX+int(tileSize), startY+int(tileSize))
 	draw.FloydSteinberg.Draw(img, destRec.Bounds(), tileImage,
 		image.Point{tileImage.Bounds().Min.X, tileImage.Bounds().Min.Y})
@@ -108,7 +123,9 @@ func AnalyzeImage(filename string) (gomosaic.ImageSegment, error) {
 	if !util.CheckError(err, "Could not process image", false) {
 		defer file.Close()
 		img, _, err := image.Decode(file)
-		util.CheckError(err, "Could not process image", true)
+		if util.CheckError(err, "Could not process image", false) {
+			return gomosaic.ImageSegment{0, 0, 0, 0, 0, 0, 0}, errors.New("Could not analyze image")
+		}
 		bounds := img.Bounds()
 		return analyzeImageSegment(img, bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y), nil
 	} else {

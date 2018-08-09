@@ -2,13 +2,11 @@ package indexer
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"github.com/cfagiani/gomosaic"
 	"github.com/cfagiani/gomosaic/indexer/processor"
 	"github.com/cfagiani/gomosaic/util"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"sort"
@@ -27,13 +25,11 @@ const (
 //the dest file
 func Index(configFile string, dest string) {
 
-	file, e := ioutil.ReadFile(configFile)
+	config, e := util.ReadConfig(configFile)
 	if e != nil {
 		fmt.Printf("Could not read configuration file: %v\n", e)
 		os.Exit(1)
 	}
-	var config gomosaic.Config
-	json.Unmarshal(file, &config)
 
 	//first read dat file if present
 	log.Println("Reading file")

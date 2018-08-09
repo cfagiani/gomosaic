@@ -9,7 +9,7 @@
     },
     {
       "kind": "google",
-      "path": "albumnName",
+      "path": "albumName",
       "options": "token.json"
     }
   ]

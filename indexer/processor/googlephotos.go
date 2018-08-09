@@ -1,16 +1,12 @@
 package processor
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/cfagiani/gomosaic"
 	"github.com/cfagiani/gomosaic/mosaicimages"
-	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
+	"github.com/cfagiani/gomosaic/util"
 	"google.golang.org/api/photoslibrary/v1"
 	"log"
-	"os"
 )
 
 type GooglePhotosProcess struct {
@@ -23,16 +19,8 @@ const IndexTileDimension = "=w100"
 
 func (p GooglePhotosProcess) Process(oldIndex gomosaic.MosaicTiles, newIndex gomosaic.MosaicTiles) gomosaic.MosaicTiles {
 
-	conf := &oauth2.Config{
-		ClientID:     p.Config.GoogleClientId,
-		ClientSecret: p.Config.GoogleClientSecret,
-		Scopes:       []string{photoslibrary.PhotoslibraryReadonlyScope},
-		Endpoint:     google.Endpoint,
-	}
+	photoService, err := util.GetPhotosService(p.Config.GoogleClientId, p.Config.GoogleClientSecret, p.Source.Options)
 
-	client := conf.Client(context.Background(), readToken(p.Source.Options))
-
-	photoService, err := photoslibrary.New(client)
 	count := 0
 
 	if err == nil {
@@ -73,16 +61,4 @@ func getPage(photoService *photoslibrary.Service, albumId string, nextPageToken 
 		fmt.Printf("Could not fetch results from service: %v", apiErr)
 	}
 	return resp
-}
-
-func readToken(file string) *oauth2.Token {
-	f, err := os.Open(file)
-	defer f.Close()
-	if err != nil {
-		fmt.Printf("Could not load token: %v", err)
-		os.Exit(1)
-	}
-	token := &oauth2.Token{}
-	err = json.NewDecoder(f).Decode(token)
-	return token
 }

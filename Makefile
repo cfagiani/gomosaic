@@ -1,8 +1,4 @@
-all: test build
-
-build:
-	#TODO: fix this.
-	go build -o mmaker -v
+.PHONY: test clean format deps
 
 test:
 	go test -v ./...
@@ -18,3 +14,5 @@ deps:
 	go get golang.org/x/oauth2
 	go get -u cloud.google.com/go/...
 	go get github.com/nmrshll/oauth2-noserver
+	go get -u github.com/utahta/go-openuri
+

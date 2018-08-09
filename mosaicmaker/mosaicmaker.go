@@ -1,11 +1,15 @@
 package mosaicmaker
 
 import (
+	"fmt"
 	"github.com/cfagiani/gomosaic"
 	"github.com/cfagiani/gomosaic/indexer"
 	"github.com/cfagiani/gomosaic/mosaicimages"
+	"github.com/cfagiani/gomosaic/util"
+	"google.golang.org/api/photoslibrary/v1"
 	"log"
 	"math"
+	"os"
 )
 
 const (
@@ -14,9 +18,24 @@ const (
 	logInterval  int = 10
 )
 
-//Makes a new photomosaic of the sourceImage using the files referenced in the indexDir as a source. This method
+//MakeMosaic makes a new photomosaic of the sourceImage using the files referenced in the indexDir as a source. This method
 //will divide up the source image into a grid and find the best match tile from the index to use in the output image.
-func MakeMosaic(sourceImage string, indexPath string, gridSize int, tileSize int, outputFile string) {
+func MakeMosaic(sourceImage string, indexPath string, gridSize int, tileSize int, outputFile string, configFile string) {
+	var photoService *photoslibrary.Service
+	var err error
+	if len(configFile) > 0 {
+		config, e := util.ReadConfig(configFile)
+		if e != nil {
+			fmt.Printf("Could not read configuration file: %v\n", e)
+			os.Exit(1)
+		}
+		//TODO: get token from correct source
+		photoService, err = util.GetPhotosService(config.GoogleClientId, config.GoogleClientSecret, "token.json")
+		if err != nil {
+			fmt.Printf("Could not initialize service client: %v\n", e)
+			os.Exit(1)
+		}
+	}
 
 	//read the index
 	filename, exists := indexer.GetIndexFileName(indexPath)
@@ -47,7 +66,7 @@ func MakeMosaic(sourceImage string, indexPath string, gridSize int, tileSize int
 	outputImage := mosaicimages.CreateDrawableImage(tileSize, gridSize, w, h)
 	for idx, node := range segments {
 		x, y := projectToDestCoordinates(node, w, h, tileSize, gridSize)
-		mosaicimages.WriteTileToImage(outputImage, mosaic[node], uint(tileSize), x, y)
+		mosaicimages.WriteTileToImage(outputImage, mosaic[node], uint(tileSize), x, y, photoService)
 		if idx%logInterval == 0 {
 			log.Printf("Wrote %d tiles into destination image", idx)
 		}

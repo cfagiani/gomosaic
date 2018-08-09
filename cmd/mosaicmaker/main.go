@@ -15,7 +15,11 @@ func main() {
 	}
 	gridSize, _ := strconv.Atoi(os.Args[3])
 	tileSize, _ := strconv.Atoi(os.Args[4])
-	mosaicmaker.MakeMosaic(os.Args[1], os.Args[2], gridSize, tileSize, os.Args[5])
+	configFile := ""
+	if len(os.Args) == 7 {
+		configFile = os.Args[6]
+	}
+	mosaicmaker.MakeMosaic(os.Args[1], os.Args[2], gridSize, tileSize, os.Args[5], configFile)
 }
 
 func usage() {

@@ -3,12 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/cfagiani/gomosaic"
+	"github.com/cfagiani/gomosaic/util"
 	"github.com/nmrshll/oauth2-noserver"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/photoslibrary/v1"
-	"io/ioutil"
 	"os"
 )
 
@@ -24,13 +23,11 @@ func main() {
 		usage()
 		os.Exit(1)
 	}
-	file, e := ioutil.ReadFile(os.Args[1])
+	config, e := util.ReadConfig(os.Args[1])
 	if e != nil {
 		fmt.Printf("Could not read configuration file: %v\n", e)
 		os.Exit(1)
 	}
-	var config gomosaic.Config
-	json.Unmarshal(file, &config)
 
 	conf := &oauth2.Config{
 		ClientID:     config.GoogleClientId,
