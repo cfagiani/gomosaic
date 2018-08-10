@@ -13,10 +13,14 @@ func main() {
 		usage()
 		os.Exit(1)
 	}
-	indexer.Index(os.Args[1], os.Args[2])
+	err := indexer.Index(os.Args[1], os.Args[2])
+	if err != nil {
+		fmt.Println("Error while indexing %v", err)
+		os.Exit(1)
+	}
 }
 
 func usage() {
 	fmt.Println("Too few command line arguments.\n\nUsage:\n")
-	fmt.Println("go run cmd/indexer/main.go <configFile> <indexFile>\n")
+	fmt.Println("indexer <configFile> <indexFile>\n")
 }

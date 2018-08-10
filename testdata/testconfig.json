@@ -1,0 +1,11 @@
+{
+  "googleClientId": "thisisnotreal",
+  "googleClientSecret": "noristhis",
+  "sources": [
+    {
+      "kind": "local",
+      "path": "../testdata",
+      "options": "recurse"
+    }
+  ]
+}

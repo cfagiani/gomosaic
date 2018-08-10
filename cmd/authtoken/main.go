@@ -13,7 +13,7 @@ import (
 
 func usage() {
 	fmt.Println("Too few command line arguments.\n\nUsage:\n")
-	fmt.Println("go run cmd/authtoken/main.go <configFile> <tokenFile>\n")
+	fmt.Println("authtoken <configFile> <tokenFile>\n")
 }
 
 // Utility program to validate that we can get an authentication token using the user-supplied clientId and secret.

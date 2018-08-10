@@ -2,7 +2,6 @@ package util
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/cfagiani/gomosaic"
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
@@ -63,7 +62,7 @@ func readOauthToken(file string) *oauth2.Token {
 	f, err := os.Open(file)
 	defer f.Close()
 	if err != nil {
-		fmt.Printf("Could not load token: %v", err)
+		log.Fatalf("Could not load token: %v", err)
 		os.Exit(1)
 	}
 	token := &oauth2.Token{}

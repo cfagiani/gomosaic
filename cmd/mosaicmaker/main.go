@@ -24,5 +24,5 @@ func main() {
 
 func usage() {
 	fmt.Println("Too few command line arguments.\n\nUsage:\n")
-	fmt.Println("go run cmd/mosaicmaker/main.go <sourceImage> <index> <gridSize> <tileSize> <outputFile>\n")
+	fmt.Println("mosaicmaker <sourceImage> <index> <gridSize> <tileSize> <outputFile>\n")
 }

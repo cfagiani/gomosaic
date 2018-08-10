@@ -1,4 +1,12 @@
-.PHONY: test clean format deps
+.PHONY: test clean format deps build install all
+
+all: clean deps build install
+
+build:
+	go build
+
+install:
+	go install ./...
 
 test:
 	go test -v ./...

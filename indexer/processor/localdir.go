@@ -12,7 +12,10 @@ type LocalProcessor struct {
 	Source gomosaic.ImageSource
 }
 
-//Processes a directory in a depth-first manner, looking for and analyzing any images. If the image is already in the
+const RecurseOption = "recurse"
+const LocalKind = "local"
+
+//Process will traverse a directory in a depth-first manner (if the option is set to recurse), looking for and analyzing any images. If the image is already in the
 //index, the data will simply be copied to the new index without re-analyzing the image.
 func (p LocalProcessor) Process(oldIndex gomosaic.MosaicTiles, newIndex gomosaic.MosaicTiles) gomosaic.MosaicTiles {
 	files, err := ioutil.ReadDir(p.Source.Path)
@@ -23,8 +26,8 @@ func (p LocalProcessor) Process(oldIndex gomosaic.MosaicTiles, newIndex gomosaic
 	log.Printf("Indexing %s\n", p.Source)
 	for _, file := range files {
 		filename := util.GetPath(p.Source.Path, file.Name())
-		if file.IsDir() && p.Source.Options == "recurse" {
-			processor := LocalProcessor{gomosaic.ImageSource{Options: "recurse", Path: filename, Kind: "local"}}
+		if file.IsDir() && p.Source.Options == RecurseOption {
+			processor := LocalProcessor{gomosaic.ImageSource{Options: RecurseOption, Path: filename, Kind: LocalKind}}
 			newIndex = processor.Process(oldIndex, newIndex)
 		} else if mosaicimages.IsSupportedImage(p.Source.Path, file) {
 			existingTile := find(filename, oldIndex)

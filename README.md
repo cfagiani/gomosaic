@@ -18,7 +18,8 @@ This module uses the index file created by the indexer and a source image to gen
 * oauth2-noserver (to get token): go get github.com/nmrshll/oauth2-noserver
 * OpenURI (to open files/urls via same interface): go get -u github.com/utahta/go-openuri
 
-
+# Installation
+Run `make all` to build and install the binaries into your environment. This target will download the dependencies then build & install the commands into your GOPATH/bin directory. Once installed you will be able to run them without using 'go run' (i.e. as long as your PATH contains your GOPATH/bin directory you can run 'mosaicmaker' directly from the shell prompt)
 # Usage
 This application can be used via the CLI (using the cmd packages) or as a library by directly importing gomosaic/indexer and gomosaic/mosaicmaker
 
@@ -58,7 +59,7 @@ In the snippet above, the meaning of each field is as follows:
 
 #### Example
 `go run cmd/indexer/main.go config.json /home/myindex.dat`
-This will (recursively) scan */home/user/images* and */home/user/downloads* for image files and index them. Index will be written to /home/myindex.dat.
+This will (recursively) scan the locations in the config file for image files and index them. Index will be written to /home/myindex.dat.
  
 
  
@@ -79,10 +80,10 @@ This will divide myimg.jpg up into a grid of 10x10 squares and will generate a m
 * consider cropping on resize to prevent skew when making square tiles
 * refactor indexers to remove duplicate code
 * refactor photo api client
-* reorganize source in accordance with https://github.com/golang-standards/project-layout
 
 
 #### Potential Enhancements:
 * use 3x3 value matrix for pixel values and find best match of that
 * optionally resize tiles? - will yield much faster runs
+* center-crop after resize?
 * parallelize indexing 

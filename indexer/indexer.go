@@ -11,6 +11,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"errors"
 )
 
 const (
@@ -20,26 +21,29 @@ const (
 	idxname = "mosaicIndex.dat"
 )
 
-//Indexes all the readable images in the source dir (will recursively search all sources defined in the config file
-//for images). For each image found, the average color values will be calculated and the results will be written to
-//the dest file
-func Index(configFile string, dest string) {
+//Index will process all the readable images in the sources defined in the configuration file. For each image found,
+//the average color values will be calculated and the results will be written to the dest file so it can be used in
+//subsequent mosaic creations.
+func Index(configFile string, dest string) error {
 
 	config, e := util.ReadConfig(configFile)
 	if e != nil {
-		fmt.Printf("Could not read configuration file: %v\n", e)
-		os.Exit(1)
+		log.Fatalf("Could not read configuration file: %v\n", e)
+		return e
 	}
 
-	//first read dat file if present
+	//first read existing index file if present
 	log.Println("Reading file")
 	oldIndex := ReadIndex(dest)
 	log.Printf("Old index has %d entries\n", len(oldIndex))
 
-	// TODO: use a goroutine for each directory?
+	// TODO: use a goroutine for each source?
 	var newIndex gomosaic.MosaicTiles = make([]gomosaic.MosaicTile, 0, 100)
 	for i := 0; i < len(config.Sources); i++ {
 		sourceProcessor := getProcessor(config.Sources[i], config)
+		if sourceProcessor == nil {
+			log.Println("Skipping source.")
+		}
 		newIndex = sourceProcessor.Process(oldIndex, newIndex)
 	}
 	oldIndex = nil // we don't need the old index anymore
@@ -47,9 +51,10 @@ func Index(configFile string, dest string) {
 
 	log.Printf("Writing new index with %d entries\n", len(newIndex))
 	writeIndex(dest, newIndex)
+	return nil
 }
 
-//Reads an existing index and returns it as a MosaicTiles type. If the index does not exist, the MosaicTiles slice will
+//ReadIndex reads an existing index and returns it as a MosaicTiles type. If the index does not exist, the MosaicTiles slice will
 //be empty.
 func ReadIndex(source string) gomosaic.MosaicTiles {
 	var index = make([]gomosaic.MosaicTile, 0, 100)
@@ -64,7 +69,12 @@ func ReadIndex(source string) gomosaic.MosaicTiles {
 		for {
 			line, err := r.ReadString(10) // 0x0A separator = newline
 			if err == nil {
-				index = append(index, createNodeFromLine(line))
+				tile, lineErr := createNodeFromLine(line)
+				if lineErr == nil {
+					index = append(index, *tile)
+				} else {
+					log.Println("Ignoring invalid index line")
+				}
 			}
 			if err == io.EOF {
 				break
@@ -74,7 +84,7 @@ func ReadIndex(source string) gomosaic.MosaicTiles {
 	return index
 }
 
-//returns the filename that should be used for the index along with a flag indicating if the file exists
+//GetIndexFileName returns the filename that should be used for the index along with a flag indicating if the file exists
 func GetIndexFileName(source string) (string, bool) {
 	filename := source
 	if fileInfo, err := os.Stat(source); !os.IsNotExist(err) {
@@ -92,14 +102,7 @@ func GetIndexFileName(source string) (string, bool) {
 	}
 }
 
-//Prints the entire index.
-func printIndex(index []gomosaic.MosaicTile) {
-	for _, node := range index {
-		fmt.Println(node.ToString())
-	}
-}
-
-//Writes the index file to the destDir.
+//writeIndex writes the index file to the destDir.
 func writeIndex(dest string, index gomosaic.MosaicTiles) {
 	filename, _ := GetIndexFileName(dest)
 	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
@@ -115,19 +118,25 @@ func writeIndex(dest string, index gomosaic.MosaicTiles) {
 	}
 }
 
+//getProcessor will return an instance of a type that implements the IndexProcessor interface.
 func getProcessor(source gomosaic.ImageSource, config gomosaic.Config) processor.IndexProcessor {
-	if source.Kind == "local" {
+	if source.Kind == processor.LocalKind {
 		return processor.LocalProcessor{Source: source}
-	} else {
-		return processor.GooglePhotosProcess{Source: source, Config: config}
+	} else if source.Kind == processor.GoogleKind {
+		return processor.GooglePhotosProcessor{Source: source, Config: config}
 	}
+	log.Printf("Unrecognized source kind: %s\n", source.Kind)
+	return nil
 }
 
 //Parses a line from the index and uses it to initialize a new MosaicTile
-func createNodeFromLine(line string) gomosaic.MosaicTile {
+func createNodeFromLine(line string) (*gomosaic.MosaicTile, error) {
 	// construct node
 	parts := strings.Split(line, delimiter)
-	return gomosaic.MosaicTile{Loc: parts[0], Filename: parts[1], AvgR: util.GetInt32(parts[2]),
-		AvgG: util.GetInt32(parts[3]), AvgB: util.GetInt32(parts[4])}
+	if len(parts) != 5 {
+		return nil, errors.New("invalid index line")
+	}
+	return &gomosaic.MosaicTile{Loc: parts[0], Filename: parts[1], AvgR: util.GetInt32(parts[2]),
+		AvgG: util.GetInt32(parts[3]), AvgB: util.GetInt32(parts[4])}, nil
 
 }

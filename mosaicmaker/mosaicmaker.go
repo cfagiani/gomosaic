@@ -1,7 +1,6 @@
 package mosaicmaker
 
 import (
-	"fmt"
 	"github.com/cfagiani/gomosaic"
 	"github.com/cfagiani/gomosaic/indexer"
 	"github.com/cfagiani/gomosaic/mosaicimages"
@@ -14,8 +13,8 @@ import (
 
 const (
 	//minimum number of entries in the index required to even attempt a mosaic
-	minIndexSize int = 50
-	logInterval  int = 10
+	minIndexSize = 50
+	logInterval  = 10
 )
 
 //MakeMosaic makes a new photomosaic of the sourceImage using the files referenced in the indexDir as a source. This method
@@ -26,13 +25,13 @@ func MakeMosaic(sourceImage string, indexPath string, gridSize int, tileSize int
 	if len(configFile) > 0 {
 		config, e := util.ReadConfig(configFile)
 		if e != nil {
-			fmt.Printf("Could not read configuration file: %v\n", e)
+			log.Fatalf("Could not read configuration file: %v\n", e)
 			os.Exit(1)
 		}
 		//TODO: get token from correct source
 		photoService, err = util.GetPhotosService(config.GoogleClientId, config.GoogleClientSecret, "token.json")
 		if err != nil {
-			fmt.Printf("Could not initialize service client: %v\n", e)
+			log.Fatalf("Could not initialize service client: %v\n", e)
 			os.Exit(1)
 		}
 	}
@@ -50,7 +49,7 @@ func MakeMosaic(sourceImage string, indexPath string, gridSize int, tileSize int
 	segments, w, h, _ := mosaicimages.SegmentImage(sourceImage, gridSize)
 	mosaic := make(map[gomosaic.ImageSegment]gomosaic.MosaicTile)
 	usedTiles := make(map[gomosaic.MosaicTile]bool)
-	log.Print("Computing matches")
+	log.Println("Computing matches")
 	for idx, node := range segments {
 		//TODO do this in parallel with goroutine/channels
 		//TODO come up with better findBestTile implementation
@@ -61,7 +60,7 @@ func MakeMosaic(sourceImage string, indexPath string, gridSize int, tileSize int
 		}
 	}
 
-	log.Print("Assembling image")
+	log.Println("Assembling image")
 	//write final image
 	outputImage := mosaicimages.CreateDrawableImage(tileSize, gridSize, w, h)
 	for idx, node := range segments {

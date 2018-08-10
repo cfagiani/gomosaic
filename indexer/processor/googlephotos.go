@@ -1,7 +1,6 @@
 package processor
 
 import (
-	"fmt"
 	"github.com/cfagiani/gomosaic"
 	"github.com/cfagiani/gomosaic/mosaicimages"
 	"github.com/cfagiani/gomosaic/util"
@@ -9,15 +8,20 @@ import (
 	"log"
 )
 
-type GooglePhotosProcess struct {
+type GooglePhotosProcessor struct {
 	Config gomosaic.Config
 	Source gomosaic.ImageSource
 }
 
-const DesiredPageSize = 500
-const IndexTileDimension = "=w100"
+const (
+	desiredPageSize    = 500
+	indexTileDimension = "=w100"
+	GoogleKind         = "google"
+)
 
-func (p GooglePhotosProcess) Process(oldIndex gomosaic.MosaicTiles, newIndex gomosaic.MosaicTiles) gomosaic.MosaicTiles {
+//Process will populate the index of MosaicTiles by querying the Google Photos api to get a list of mediaItems and then
+//analyzing each to calculate average pixel values.
+func (p GooglePhotosProcessor) Process(oldIndex gomosaic.MosaicTiles, newIndex gomosaic.MosaicTiles) gomosaic.MosaicTiles {
 
 	photoService, err := util.GetPhotosService(p.Config.GoogleClientId, p.Config.GoogleClientSecret, p.Source.Options)
 
@@ -30,17 +34,19 @@ func (p GooglePhotosProcess) Process(oldIndex gomosaic.MosaicTiles, newIndex gom
 			pageResp := getPage(photoService, "", nextPage)
 			//TODO: refactor this as most of the logic is the same as the localdir indexer.
 			for _, item := range pageResp.MediaItems {
-				existingTile := find(item.Id, oldIndex)
-				if existingTile == nil {
-					imageSegment, err := mosaicimages.AnalyzeImage(item.BaseUrl + IndexTileDimension)
-					if err == nil {
-						//now add to index
-						newIndex = append(newIndex,
-							gomosaic.MosaicTile{Loc: "G", Filename: item.Id, AvgR: imageSegment.RVal, AvgG: imageSegment.GVal, AvgB: imageSegment.BVal})
-						count++
+				if item.MediaMetadata.Photo != nil { // don't index videos
+					existingTile := find(item.Id, oldIndex)
+					if existingTile == nil {
+						imageSegment, err := mosaicimages.AnalyzeImage(item.BaseUrl + indexTileDimension)
+						if err == nil {
+							//now add to index
+							newIndex = append(newIndex,
+								gomosaic.MosaicTile{Loc: "G", Filename: item.Id, AvgR: imageSegment.RVal, AvgG: imageSegment.GVal, AvgB: imageSegment.BVal})
+							count++
+						}
+					} else {
+						newIndex = append(newIndex, *existingTile)
 					}
-				} else {
-					newIndex = append(newIndex, *existingTile)
 				}
 			}
 			nextPage = pageResp.NextPageToken
@@ -53,12 +59,13 @@ func (p GooglePhotosProcess) Process(oldIndex gomosaic.MosaicTiles, newIndex gom
 	return newIndex
 }
 
+//getPage will fetch a page of MediaItems from the Google Photos api.
 func getPage(photoService *photoslibrary.Service, albumId string, nextPageToken string) *photoslibrary.SearchMediaItemsResponse {
 	resp, apiErr := photoService.MediaItems.Search(&photoslibrary.SearchMediaItemsRequest{AlbumId: albumId,
-		PageSize:  DesiredPageSize,
+		PageSize:  desiredPageSize,
 		PageToken: nextPageToken}).Do()
 	if apiErr != nil {
-		fmt.Printf("Could not fetch results from service: %v", apiErr)
+		log.Printf("Could not fetch results from service: %v", apiErr)
 	}
 	return resp
 }

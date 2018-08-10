@@ -15,6 +15,7 @@ import (
 	_ "image/png"
 	"os"
 	"strings"
+	"log"
 )
 
 var magicNumbers = map[string]string{
@@ -72,11 +73,11 @@ func WriteTileToImage(img draw.Image, tile gomosaic.MosaicTile, tileSize uint, s
 	} else {
 		item, err := photoService.MediaItems.Get(tile.Filename).Do()
 		if err != nil {
-			fmt.Printf("Could not get mediaItem from service: %v\n", err)
+			log.Fatalf("Could not get mediaItem from service: %v\n", err)
 			os.Exit(1)
 		}
 
-		file, _ := openuri.Open(item.BaseUrl + fmt.Sprintf("=w%d-h%d", tileSize, tileSize))
+		file, _ := openuri.Open(item.BaseUrl + fmt.Sprintf("=w%d-h%d-c", tileSize, tileSize))
 		tileImage, _, err = image.Decode(file)
 		util.CheckError(err, "Could not process image", true)
 	}
