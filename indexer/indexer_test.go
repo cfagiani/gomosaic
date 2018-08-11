@@ -4,10 +4,10 @@ import (
 	"github.com/cfagiani/gomosaic"
 	"github.com/cfagiani/gomosaic/indexer/processor"
 	"github.com/cfagiani/gomosaic/util"
-	"reflect"
-	"testing"
 	"os"
+	"reflect"
 	"strings"
+	"testing"
 )
 
 func TestGetIndexFileName(t *testing.T) {

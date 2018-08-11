@@ -1,0 +1,6 @@
+{
+  "access_token": "tokenstring",
+  "token_type": "Bearer",
+  "refresh_token": "refreshstring",
+  "expiry": "2018-08-09T22:49:21.321428888-04:00"
+}

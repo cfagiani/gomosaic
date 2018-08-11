@@ -9,6 +9,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"errors"
 )
 
 const (
@@ -19,9 +20,14 @@ const (
 
 //MakeMosaic makes a new photomosaic of the sourceImage using the files referenced in the indexDir as a source. This method
 //will divide up the source image into a grid and find the best match tile from the index to use in the output image.
-func MakeMosaic(sourceImage string, indexPath string, gridSize int, tileSize int, outputFile string, configFile string) {
+func MakeMosaic(sourceImage string, indexPath string, gridSize int, tileSize int, outputFile string, configFile string) error {
 	var photoService *photoslibrary.Service
 	var err error
+
+	if gridSize <= 0 || tileSize <= 0 {
+		return errors.New("gridSize and tileSize must be positive")
+	}
+
 	if len(configFile) > 0 {
 		config, e := util.ReadConfig(configFile)
 		if e != nil {
@@ -62,7 +68,7 @@ func MakeMosaic(sourceImage string, indexPath string, gridSize int, tileSize int
 
 	log.Println("Assembling image")
 	//write final image
-	outputImage := mosaicimages.CreateDrawableImage(tileSize, gridSize, w, h)
+	outputImage, _ := mosaicimages.CreateDrawableImage(tileSize, gridSize, w, h)
 	for idx, node := range segments {
 		x, y := projectToDestCoordinates(node, w, h, tileSize, gridSize)
 		mosaicimages.WriteTileToImage(outputImage, mosaic[node], uint(tileSize), x, y, photoService)
@@ -71,7 +77,7 @@ func MakeMosaic(sourceImage string, indexPath string, gridSize int, tileSize int
 		}
 	}
 	//now write image to file
-	mosaicimages.WriteImageToFile(outputImage, outputFile)
+	return mosaicimages.WriteImageToFile(outputImage, outputFile)
 
 }
 

@@ -38,6 +38,7 @@ func main() {
 	client := oauth2ns.Authorize(conf)
 	fmt.Printf("Writing token to %s", os.Args[2])
 	f, err := os.OpenFile(os.Args[2], os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	defer f.Close()
 	if err != nil {
 		fmt.Printf("Could not write token file: %v", err)
 		os.Exit(1)

@@ -5,6 +5,7 @@ import (
 	"github.com/cfagiani/gomosaic/mosaicmaker"
 	"os"
 	"strconv"
+	"github.com/cfagiani/gomosaic/util"
 )
 
 //This command wil run the mosaic maker. It assumes that we have already computed an index to use for tiles.
@@ -19,7 +20,8 @@ func main() {
 	if len(os.Args) == 7 {
 		configFile = os.Args[6]
 	}
-	mosaicmaker.MakeMosaic(os.Args[1], os.Args[2], gridSize, tileSize, os.Args[5], configFile)
+	err := mosaicmaker.MakeMosaic(os.Args[1], os.Args[2], gridSize, tileSize, os.Args[5], configFile)
+	util.CheckError(err, "Could create mosaic", true)
 }
 
 func usage() {

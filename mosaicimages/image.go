@@ -13,9 +13,9 @@ import (
 	_ "image/gif"
 	"image/jpeg"
 	_ "image/png"
+	"log"
 	"os"
 	"strings"
-	"log"
 )
 
 var magicNumbers = map[string]string{
@@ -25,8 +25,8 @@ var magicNumbers = map[string]string{
 	"GIF89a":            "image/gif",
 }
 
-//checks if a file is a supported image by looking at the first few bytes to see if its in our magicNumber table
-//while we could use the Decode method from images, we don't need/want to read the whole file right now
+//IsSupportedImage checks if a file is a supported image by looking at the first few bytes to see if its in our
+//magicNumber table while we could use the Decode method from images, we don't need to read the whole file right now.
 func IsSupportedImage(dirName string, file os.FileInfo) bool {
 	f, err := os.Open(util.GetPath(dirName, file.Name()))
 	defer f.Close()
@@ -43,58 +43,75 @@ func IsSupportedImage(dirName string, file os.FileInfo) bool {
 	return false
 }
 
-// use height or width of 0 to preserve aspect ratio
-func resizeImage(inputFile string, height uint, width uint) image.Image {
+//ResizeImage will return an Image instance that is the result of resizing the file storead at the path passed in using
+//the specified dimensions. Use height or width of 0 to preserve aspect ratio.
+func ResizeImage(inputFile string, height uint, width uint) (image.Image, error) {
 	file, err := os.Open(inputFile)
 	defer file.Close()
-	util.CheckError(err, "Could not read input file", true)
+	if util.CheckError(err, "Could not read input file", false) {
+		return nil, err
+	}
 
 	// decode jpeg into image.Image
 	img, _, err := image.Decode(file)
-	util.CheckError(err, "Could not decode image", true)
-	return resize.Resize(width, height, img, resize.Lanczos3)
-}
+	if util.CheckError(err, "Could not decode image", false) {
+		return nil, err
+	}
 
-//resizes an input image and writes a new file with the result
-func GenerateTileFile(inputFile string, outputFile string, height uint, width uint) {
-	m := resizeImage(inputFile, height, width)
-	WriteImageToFile(m, outputFile)
+	return resize.Resize(width, height, img, resize.Lanczos3), nil
 }
 
 //Creates a new Image using the dimensions passed in
-func CreateDrawableImage(tileSize int, gridSize int, sourceWidth int, sourceHeight int) draw.Image {
-	return image.NewRGBA(image.Rect(0, 0, (sourceWidth/gridSize)*tileSize, (sourceHeight/gridSize)*tileSize))
+func CreateDrawableImage(tileSize int, gridSize int, sourceWidth int, sourceHeight int) (draw.Image, error) {
+	if tileSize <= 0 || gridSize <= 0 || sourceWidth <= 0 || sourceHeight <= 0 || sourceWidth < gridSize || sourceHeight < gridSize {
+		return nil, errors.New("both tileSize and gridSize must be positive and gridSize must be smaller than both sourceWidth and sourceHeight")
+	}
+	return image.NewRGBA(image.Rect(0, 0, (sourceWidth/gridSize)*tileSize, (sourceHeight/gridSize)*tileSize)), nil
 }
 
-func WriteTileToImage(img draw.Image, tile gomosaic.MosaicTile, tileSize uint, startX int, startY int, photoService *photoslibrary.Service) {
+//WriteTileToImage will resize the image referenced by the tile passed in into the dimensions specified and write it into the
+//Image (img) being constructed.
+func WriteTileToImage(img draw.Image, tile gomosaic.MosaicTile, tileSize uint,
+	startX int, startY int, photoService *photoslibrary.Service) {
 	var tileImage image.Image
-	if tile.Loc == "L" {
-		tileImage = resizeImage(tile.Filename, tileSize, tileSize)
-	} else {
+	var imgErr error
+	switch tile.Loc {
+	case "L":
+		tileImage, imgErr = ResizeImage(tile.Filename, tileSize, tileSize)
+		if imgErr != nil {
+			log.Fatalf("Could not resize image: %v", imgErr)
+			os.Exit(1)
+		}
+	case "G":
 		item, err := photoService.MediaItems.Get(tile.Filename).Do()
 		if err != nil {
 			log.Fatalf("Could not get mediaItem from service: %v\n", err)
 			os.Exit(1)
 		}
-
 		file, _ := openuri.Open(item.BaseUrl + fmt.Sprintf("=w%d-h%d-c", tileSize, tileSize))
 		tileImage, _, err = image.Decode(file)
 		util.CheckError(err, "Could not process image", true)
+	default:
+		log.Fatalf("Unrecongnized tile location %v", tile.Loc)
 	}
+
 	destRec := image.Rect(startX, startY, startX+int(tileSize), startY+int(tileSize))
 	draw.FloydSteinberg.Draw(img, destRec.Bounds(), tileImage,
 		image.Point{tileImage.Bounds().Min.X, tileImage.Bounds().Min.Y})
 }
 
-func WriteImageToFile(img image.Image, outputFile string) {
+//WriteImageToFile saves the in-memory representation of an image to the filesystem at the path specified.
+func WriteImageToFile(img image.Image, outputFile string) error {
 	out, err := os.Create(outputFile)
-	util.CheckError(err, "Could not open output file", true)
+	if err != nil {
+		return err
+	}
 	defer out.Close()
 	// write new image to file
-	jpeg.Encode(out, img, nil)
+	return jpeg.Encode(out, img, nil)
 }
 
-//Divides a source image up into square segments of the specified size and returns an array of ImageSegments. If the
+//SegmentImage divides a source image up into square segments of the specified size and returns an array of ImageSegments. If the
 //image cannot be processed, an error is returned.
 func SegmentImage(sourceImage string, segmentSize int) ([]gomosaic.ImageSegment, int, int, error) {
 	file, err := os.Open(sourceImage)
@@ -104,7 +121,7 @@ func SegmentImage(sourceImage string, segmentSize int) ([]gomosaic.ImageSegment,
 		util.CheckError(err, "Could not process image", true)
 		bounds := img.Bounds()
 		//TODO: need to handle non-square images better
-		var segments []gomosaic.ImageSegment = make([]gomosaic.ImageSegment, 0, 100)
+		var segments = make([]gomosaic.ImageSegment, 0, 100)
 		for y := bounds.Min.Y; y < bounds.Max.Y; y += segmentSize {
 			for x := bounds.Min.X; x < bounds.Max.X; x += segmentSize {
 				segments = append(segments, analyzeImageSegment(img, x, y, x+segmentSize, y+segmentSize))
@@ -125,16 +142,19 @@ func AnalyzeImage(filename string) (gomosaic.ImageSegment, error) {
 		defer file.Close()
 		img, _, err := image.Decode(file)
 		if util.CheckError(err, "Could not process image", false) {
-			return gomosaic.ImageSegment{0, 0, 0, 0, 0, 0, 0}, errors.New("Could not analyze image")
+			return gomosaic.ImageSegment{0, 0, 0, 0, 0, 0, 0},
+				errors.New("Could not analyze image")
 		}
 		bounds := img.Bounds()
 		return analyzeImageSegment(img, bounds.Min.X, bounds.Min.Y, bounds.Max.X, bounds.Max.Y), nil
 	} else {
-		return gomosaic.ImageSegment{0, 0, 0, 0, 0, 0, 0}, errors.New("Could not analyze image")
+		return gomosaic.ImageSegment{0, 0, 0, 0, 0, 0, 0},
+			errors.New("Could not analyze image")
 	}
 }
 
-//Analyzes a segment of an image, returning an ImageSegment struct with the result.
+//analyzeImageSegment calculates the average pixel values for a segment of an image, returning an ImageSegment struct
+//with the result.
 func analyzeImageSegment(img image.Image, xMin int, yMin int, xMax int, yMax int) gomosaic.ImageSegment {
 	var rTotal, gTotal, bTotal, pixelCount uint32 = 0, 0, 0, 0
 

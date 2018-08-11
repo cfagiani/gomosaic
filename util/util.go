@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"errors"
 )
 
 //utility to get the path of a file by concatenating the directory, the pathSeparator, and the file name.
@@ -77,6 +78,11 @@ func ReadConfig(fileName string) (gomosaic.Config, error) {
 		return gomosaic.Config{}, e
 	}
 	var config gomosaic.Config
-	json.Unmarshal(file, &config)
-	return config, nil
+	e = json.Unmarshal(file, &config)
+	if e == nil {
+		if len(config.Sources) == 0 {
+			return config, errors.New("config file did not contain any valid sources")
+		}
+	}
+	return config, e
 }

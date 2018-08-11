@@ -77,13 +77,12 @@ This will divide myimg.jpg up into a grid of 10x10 squares and will generate a m
 * Store index summary information including last index date so we can make indexers only look at things modiified since last index run
 * better data structure for index searches so we don't have to do so many comparisons
 * options regarding how we want to handle duplicates (allow/disallow, min separation, etc)
-* consider cropping on resize to prevent skew when making square tiles
+* resize should maintain aspect ratio and then center-crop when making tiles
 * refactor indexers to remove duplicate code
 * refactor photo api client
 
 
 #### Potential Enhancements:
 * use 3x3 value matrix for pixel values and find best match of that
-* optionally resize tiles? - will yield much faster runs
-* center-crop after resize?
+* optionally resize and save tiles
 * parallelize indexing 

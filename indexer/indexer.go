@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"github.com/cfagiani/gomosaic"
 	"github.com/cfagiani/gomosaic/indexer/processor"
@@ -11,7 +12,6 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"errors"
 )
 
 const (
